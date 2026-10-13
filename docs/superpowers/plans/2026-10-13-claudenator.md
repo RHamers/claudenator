@@ -1562,7 +1562,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m.updateNormalMode(keyMsg)
 }
 
-func (m Model) refreshVisible() {
+func (m *Model) refreshVisible() {
 	m.visible = applyFilter(m.all, m.filterInput.Value())
 	sortSessions(m.visible, m.sortCol)
 	m.table.SetRows(rowsFor(m.visible))
@@ -1594,7 +1594,7 @@ Add `"/", "f":` as a new case in `updateNormalMode`'s switch:
 		m.filterInput.Focus()
 ```
 
-Note: `refreshVisible` is defined with a value receiver but mutates `m.visible`/`m.table` — because Go value receivers copy the struct, callers must use it as `m.refreshVisible()` immediately before returning `m` (not `otherVar.refreshVisible()`), since the mutation only affects the copy held by that specific `m` in scope. This matches how it's used above (always called on the `m` that gets returned).
+Note: `refreshVisible` must take a **pointer** receiver (`func (m *Model) refreshVisible()`), not a value receiver. `Update`'s local variable `m` is an addressable `Model` value, so calling `m.refreshVisible()` on it auto-takes its address and the mutation lands directly on that local variable — which is what the function then returns. A value-receiver version would mutate a throwaway copy and silently leave the caller's `m` unchanged, so `go vet`/manual review should treat a value receiver here as a bug, not a style choice.
 
 - [ ] **Step 6: Run tests to verify they pass**
 
@@ -2151,15 +2151,15 @@ In `New`, after setting up `m.filterInput`, add:
 	m.refreshPreview()
 ```
 
-Add `refreshPreview` and update `refreshVisible` to call it:
+Add `refreshPreview` and update `refreshVisible` to call it. Both take a **pointer** receiver, for the same reason noted in Task 6: a value receiver would mutate a throwaway copy and the caller's `m` would silently see no change.
 
 ```go
-func (m Model) refreshPreview() {
+func (m *Model) refreshPreview() {
 	m.preview.SetContent(m.selected().LastMessage)
 }
 ```
 
-Update `refreshVisible` (from Task 6) to also call `m.refreshPreview()` as its last line, and update `updateNormalMode`'s `j`/`k`/`g`/`gg`/`G` cases to refresh the preview and respect focus. Replace the whole `updateNormalMode` function with:
+Update `refreshVisible` (from Task 6) to also call `m.refreshPreview()` as its last line (it already has a pointer receiver, so this is a direct call, not a re-addressing), and update `updateNormalMode`'s `j`/`k`/`g`/`gg`/`G` cases to refresh the preview and respect focus. Replace the whole `updateNormalMode` function with:
 
 ```go
 func (m Model) updateNormalMode(keyMsg tea.KeyMsg) (tea.Model, tea.Cmd) {
