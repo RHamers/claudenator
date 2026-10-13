@@ -1,0 +1,2 @@
+{"type":"system","sessionId":"22222222-2222-2222-2222-222222222222","timestamp":"2026-10-01T10:00:00Z"}
+{"type":"user","message":{"role":"user","content":"hello"},"sessionId":"22222222-2222-2222-2222-222222222222","timestamp":"2026-10-01T10:05:00Z"}
