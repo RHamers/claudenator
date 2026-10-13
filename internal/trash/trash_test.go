@@ -49,6 +49,40 @@ func TestStoreMoveAndRestore(t *testing.T) {
 	}
 }
 
+func TestStoreRestoreRefusesToOverwriteExistingFile(t *testing.T) {
+	projectsDir := t.TempDir()
+	trashDir := filepath.Join(t.TempDir(), "trash")
+	origPath := filepath.Join(projectsDir, "abc123.jsonl")
+	writeFile(t, origPath, `{"sessionId":"abc123"}`)
+
+	store := Store{Dir: trashDir}
+	sess := session.Session{ID: "abc123", FilePath: origPath}
+
+	if err := store.Move(sess); err != nil {
+		t.Fatalf("Move: %v", err)
+	}
+
+	// Something else now occupies the original path (e.g. the session
+	// file got recreated after being trashed).
+	const sentinel = "pre-existing content, must survive"
+	writeFile(t, origPath, sentinel)
+
+	if err := store.Restore("abc123"); err == nil {
+		t.Fatalf("expected Restore to refuse overwriting an existing file")
+	}
+
+	got, err := os.ReadFile(origPath)
+	if err != nil {
+		t.Fatalf("ReadFile: %v", err)
+	}
+	if string(got) != sentinel {
+		t.Fatalf("expected pre-existing file untouched, got %q", string(got))
+	}
+	if _, err := os.Stat(TrashPath(trashDir, "abc123")); err != nil {
+		t.Fatalf("expected trashed file to remain in trash: %v", err)
+	}
+}
+
 func TestStorePrunePrunesOldKeepsRecent(t *testing.T) {
 	trashDir := t.TempDir()
 	store := Store{Dir: trashDir}

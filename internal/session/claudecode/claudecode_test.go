@@ -82,6 +82,20 @@ func TestListIgnoresNonJSONLSiblings(t *testing.T) {
 	}
 }
 
+func TestListSkipsMetaAndCommandMarkupLines(t *testing.T) {
+	p := New("testdata/skip-meta-lines", trash.Store{Dir: t.TempDir()})
+	sessions, err := p.List()
+	if err != nil {
+		t.Fatalf("List: %v", err)
+	}
+	if len(sessions) != 1 {
+		t.Fatalf("expected 1 session, got %d", len(sessions))
+	}
+	if sessions[0].LastMessage != "please refactor this function" {
+		t.Errorf("LastMessage = %q, want the earlier normal human message", sessions[0].LastMessage)
+	}
+}
+
 func TestDeleteMovesFileToTrash(t *testing.T) {
 	root := t.TempDir()
 	projDir := filepath.Join(root, "-home-user-proj")

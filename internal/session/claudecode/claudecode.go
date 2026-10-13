@@ -31,6 +31,7 @@ type rawLine struct {
 	GitBranch string      `json:"gitBranch"`
 	SessionID string      `json:"sessionId"`
 	Message   *rawMessage `json:"message"`
+	IsMeta    bool        `json:"isMeta"`
 }
 
 type rawMessage struct {
@@ -103,8 +104,8 @@ func parseFile(path string) (session.Session, error) {
 				lastActive = t
 			}
 		}
-		if raw.Message != nil && raw.Message.Role == "user" {
-			if text := extractText(raw.Message.Content); text != "" {
+		if raw.Message != nil && raw.Message.Role == "user" && !raw.IsMeta {
+			if text := extractText(raw.Message.Content); text != "" && !strings.HasPrefix(text, "<") {
 				lastMsg = text
 			}
 		}

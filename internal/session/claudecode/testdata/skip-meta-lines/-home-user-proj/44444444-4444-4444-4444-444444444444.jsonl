@@ -1,0 +1,4 @@
+{"type":"system","cwd":"/home/user/proj","gitBranch":"main","sessionId":"44444444-4444-4444-4444-444444444444","timestamp":"2026-10-01T10:00:00Z"}
+{"type":"user","message":{"role":"user","content":"please refactor this function"},"cwd":"/home/user/proj","gitBranch":"main","sessionId":"44444444-4444-4444-4444-444444444444","timestamp":"2026-10-01T10:05:00Z"}
+{"type":"user","isMeta":true,"message":{"role":"user","content":"this is internal meta content"},"cwd":"/home/user/proj","gitBranch":"main","sessionId":"44444444-4444-4444-4444-444444444444","timestamp":"2026-10-01T10:10:00Z"}
+{"type":"user","message":{"role":"user","content":"<command-name>compact</command-name><command-message>compact</command-message>"},"cwd":"/home/user/proj","gitBranch":"main","sessionId":"44444444-4444-4444-4444-444444444444","timestamp":"2026-10-01T10:15:00Z"}

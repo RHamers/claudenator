@@ -48,6 +48,7 @@ type Model struct {
 
 func columns() []table.Column {
 	return []table.Column{
+		{Title: "", Width: 2},
 		{Title: "Dir", Width: 40},
 		{Title: "Branch", Width: 16},
 		{Title: "Last edited", Width: 16},
@@ -57,7 +58,11 @@ func columns() []table.Column {
 func rowsFor(sessions []session.Session) []table.Row {
 	rows := make([]table.Row, len(sessions))
 	for i, s := range sessions {
-		rows[i] = table.Row{s.Dir, s.Branch, humanize(s.LastActive)}
+		running := ""
+		if s.Running {
+			running = "●"
+		}
+		rows[i] = table.Row{running, s.Dir, s.Branch, humanize(s.LastActive)}
 	}
 	return rows
 }
@@ -109,6 +114,11 @@ func (m *Model) refreshVisible() {
 	m.visible = applyFilter(m.all, m.filterInput.Value())
 	sortSessions(m.visible, m.sortCol)
 	m.table.SetRows(rowsFor(m.visible))
+	// table.SetRows only clamps the cursor downward when it overshoots the
+	// new row count; it never pulls a cursor that's gone negative (e.g.
+	// after the list emptied out) back up once rows reappear. Re-clamp
+	// explicitly so selected() keeps working after delete/undo cycles.
+	m.table.SetCursor(m.table.Cursor())
 	m.refreshPreview()
 }
 
@@ -118,6 +128,8 @@ func (m *Model) refreshPreview() {
 
 func (m Model) updateFilterMode(keyMsg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch keyMsg.Type {
+	case tea.KeyCtrlC:
+		return m, tea.Quit
 	case tea.KeyEnter:
 		m.mode = modeNormal
 		return m, nil
@@ -138,11 +150,15 @@ func (m Model) updateNormalMode(keyMsg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.updateConfirm(keyMsg)
 	}
 
+	m.err = ""
+
 	key := keyMsg.String()
 	wasPendingG := m.pendingG
 	m.pendingG = false
 
 	switch key {
+	case "q", "ctrl+c":
+		return m, tea.Quit
 	case "j", "down":
 		if m.focus == focusPreview {
 			m.preview.LineDown(1)
@@ -246,6 +262,13 @@ func (m Model) undo() (tea.Model, tea.Cmd) {
 }
 
 func (m Model) updateConfirm(keyMsg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if keyMsg.Type == tea.KeyCtrlC {
+		return m, tea.Quit
+	}
+	if keyMsg.Type == tea.KeyEsc {
+		m.confirm = nil
+		return m, nil
+	}
 	switch keyMsg.String() {
 	case "y":
 		c := *m.confirm
@@ -305,7 +328,7 @@ func (m Model) View() string {
 		case confirmDelete:
 			view += "\n" + fmt.Sprintf("Delete session in %s? (y/n)", m.confirm.target.Dir)
 		case confirmResumeConflict:
-			view += "\n" + fmt.Sprintf("Session already running (pid %d) — attach anyway? (y/n)", m.confirm.pid)
+			view += "\n" + fmt.Sprintf("Session already running in %s (pid %d) — attach anyway? (y/n)", m.confirm.target.Dir, m.confirm.pid)
 		}
 	}
 

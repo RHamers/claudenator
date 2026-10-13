@@ -90,6 +90,33 @@ func TestSortCyclesToDirThenBranchThenBack(t *testing.T) {
 	}
 }
 
+func TestRowsForShowsRunningIndicatorOnlyForRunningSessions(t *testing.T) {
+	sessions := []session.Session{
+		{ID: "a", Dir: "/dir-a", Running: true},
+		{ID: "b", Dir: "/dir-b", Running: false},
+	}
+	rows := rowsFor(sessions)
+	if rows[0][0] == "" {
+		t.Fatalf("expected running session to have a non-empty indicator, got row %+v", rows[0])
+	}
+	if rows[1][0] != "" {
+		t.Fatalf("expected non-running session to have an empty indicator, got %q", rows[1][0])
+	}
+}
+
+func TestQKeyQuitsWithoutSettingPendingResume(t *testing.T) {
+	m := newTestModel()
+	updated, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}})
+	m = updated.(Model)
+
+	if cmd == nil {
+		t.Fatalf("expected a non-nil tea.Cmd (tea.Quit) when pressing q")
+	}
+	if m.PendingResume() != nil {
+		t.Fatalf("expected quitting not to set a pending resume")
+	}
+}
+
 func TestNavigationOnEmptyListDoesNotPanic(t *testing.T) {
 	providers := map[string]session.Provider{}
 	findRunning := func(string) (int, bool) { return 0, false }

@@ -46,7 +46,11 @@ func TestViewShowsConfirmPromptForResumeConflict(t *testing.T) {
 	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m = updated.(Model)
 
-	if !strings.Contains(m.View(), "555") {
-		t.Fatalf("expected View() to contain conflicting pid, got %q", m.View())
+	view := m.View()
+	if !strings.Contains(view, "555") {
+		t.Fatalf("expected View() to contain conflicting pid, got %q", view)
+	}
+	if !strings.Contains(view, m.confirm.target.Dir) {
+		t.Fatalf("expected View() to contain the session directory, got %q", view)
 	}
 }

@@ -2,6 +2,7 @@ package trash
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -69,6 +70,9 @@ func (s Store) Restore(sessionID string) error {
 	meta, err := readMeta(MetaPath(s.Dir, sessionID))
 	if err != nil {
 		return err
+	}
+	if _, err := os.Lstat(meta.OriginalPath); err == nil {
+		return fmt.Errorf("trash: restore target already exists: %s", meta.OriginalPath)
 	}
 	if err := os.MkdirAll(filepath.Dir(meta.OriginalPath), 0o755); err != nil {
 		return err

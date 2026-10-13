@@ -66,6 +66,11 @@ func main() {
 		return procscan.FindResumeProcess("/proc", id)
 	}
 
+	for i := range sessions {
+		_, running := findRunning(sessions[i].ID)
+		sessions[i].Running = running
+	}
+
 	m := ui.New(sessions, providers, trashStore, findRunning)
 	p := tea.NewProgram(m)
 	finalModel, err := p.Run()
