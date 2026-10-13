@@ -290,5 +290,24 @@ func removeByID(sessions []session.Session, id string) []session.Session {
 }
 
 func (m Model) View() string {
-	return m.table.View()
+	view := m.table.View() + "\n" + m.preview.View()
+
+	if m.mode == modeFilter {
+		view += "\n" + m.filterInput.View()
+	}
+
+	if m.err != "" {
+		view += "\n" + m.err
+	}
+
+	if m.confirm != nil {
+		switch m.confirm.kind {
+		case confirmDelete:
+			view += "\n" + fmt.Sprintf("Delete session in %s? (y/n)", m.confirm.target.Dir)
+		case confirmResumeConflict:
+			view += "\n" + fmt.Sprintf("Session already running (pid %d) — attach anyway? (y/n)", m.confirm.pid)
+		}
+	}
+
+	return view
 }
