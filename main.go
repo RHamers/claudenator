@@ -72,7 +72,7 @@ func main() {
 	}
 
 	m := ui.New(sessions, providers, trashStore, findRunning)
-	p := tea.NewProgram(m)
+	p := tea.NewProgram(m, tea.WithAltScreen())
 	finalModel, err := p.Run()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
