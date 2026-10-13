@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"fmt"
+
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -27,6 +29,9 @@ type Model struct {
 	findRunning func(string) (int, bool)
 	mode        mode
 	filterInput textinput.Model
+	confirm     *confirmState
+	err         string
+	undoStack   trash.UndoStack
 }
 
 func columns() []table.Column {
@@ -110,6 +115,10 @@ func (m Model) updateFilterMode(keyMsg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) updateNormalMode(keyMsg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if m.confirm != nil {
+		return m.updateConfirm(keyMsg)
+	}
+
 	key := keyMsg.String()
 	wasPendingG := m.pendingG
 	m.pendingG = false
@@ -134,8 +143,80 @@ func (m Model) updateNormalMode(keyMsg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "/", "f":
 		m.mode = modeFilter
 		m.filterInput.Focus()
+	case "d":
+		return m.beginDelete()
+	case "u":
+		return m.undo()
 	}
 	return m, nil
+}
+
+func (m Model) beginDelete() (tea.Model, tea.Cmd) {
+	sel := m.selected()
+	if sel.ID == "" {
+		return m, nil // empty list, nothing to delete
+	}
+	if pid, running := m.findRunning(sel.ID); running {
+		m.err = fmt.Sprintf("session %s is running (pid %d) — cannot delete", sel.ID, pid)
+		return m, nil
+	}
+	m.err = ""
+	m.confirm = &confirmState{kind: confirmDelete, target: sel}
+	return m, nil
+}
+
+func (m Model) undo() (tea.Model, tea.Cmd) {
+	s, ok := m.undoStack.Pop()
+	if !ok {
+		return m, nil
+	}
+	if err := m.trashStore.Restore(s.ID); err != nil {
+		m.err = err.Error()
+		return m, nil
+	}
+	m.all = append(m.all, s)
+	m.refreshVisible()
+	return m, nil
+}
+
+func (m Model) updateConfirm(keyMsg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch keyMsg.String() {
+	case "y":
+		c := *m.confirm
+		m.confirm = nil
+		if c.kind == confirmDelete {
+			return m.performDelete(c.target)
+		}
+	case "n":
+		m.confirm = nil
+	}
+	return m, nil
+}
+
+func (m Model) performDelete(s session.Session) (tea.Model, tea.Cmd) {
+	provider, ok := m.providers[s.Provider]
+	if !ok {
+		m.err = fmt.Sprintf("no provider registered for %q", s.Provider)
+		return m, nil
+	}
+	if err := provider.Delete(s); err != nil {
+		m.err = err.Error()
+		return m, nil
+	}
+	m.all = removeByID(m.all, s.ID)
+	m.undoStack.Push(s)
+	m.refreshVisible()
+	return m, nil
+}
+
+func removeByID(sessions []session.Session, id string) []session.Session {
+	result := make([]session.Session, 0, len(sessions))
+	for _, s := range sessions {
+		if s.ID != id {
+			result = append(result, s)
+		}
+	}
+	return result
 }
 
 func (m Model) View() string {
