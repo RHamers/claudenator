@@ -5,8 +5,10 @@ import (
 
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/bubbles/textinput"
+	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 
+	"github.com/RHamers/claudenator/internal/resume"
 	"github.com/RHamers/claudenator/internal/session"
 	"github.com/RHamers/claudenator/internal/trash"
 )
@@ -18,20 +20,30 @@ const (
 	modeFilter
 )
 
+type focusPane int
+
+const (
+	focusList focusPane = iota
+	focusPreview
+)
+
 type Model struct {
-	all         []session.Session
-	visible     []session.Session
-	table       table.Model
-	sortCol     SortColumn
-	pendingG    bool
-	providers   map[string]session.Provider
-	trashStore  trash.Store
-	findRunning func(string) (int, bool)
-	mode        mode
-	filterInput textinput.Model
-	confirm     *confirmState
-	err         string
-	undoStack   trash.UndoStack
+	all           []session.Session
+	visible       []session.Session
+	table         table.Model
+	sortCol       SortColumn
+	pendingG      bool
+	providers     map[string]session.Provider
+	trashStore    trash.Store
+	findRunning   func(string) (int, bool)
+	mode          mode
+	filterInput   textinput.Model
+	confirm       *confirmState
+	err           string
+	undoStack     trash.UndoStack
+	preview       viewport.Model
+	focus         focusPane
+	pendingResume *resume.Plan
 }
 
 func columns() []table.Column {
@@ -67,6 +79,8 @@ func New(sessions []session.Session, providers map[string]session.Provider, tras
 	)
 	m.filterInput = textinput.New()
 	m.filterInput.Prompt = "Filter: "
+	m.preview = viewport.New(80, 6)
+	m.refreshPreview()
 	return m
 }
 
@@ -95,6 +109,11 @@ func (m *Model) refreshVisible() {
 	m.visible = applyFilter(m.all, m.filterInput.Value())
 	sortSessions(m.visible, m.sortCol)
 	m.table.SetRows(rowsFor(m.visible))
+	m.refreshPreview()
+}
+
+func (m *Model) refreshPreview() {
+	m.preview.SetContent(m.selected().LastMessage)
 }
 
 func (m Model) updateFilterMode(keyMsg tea.KeyMsg) (tea.Model, tea.Cmd) {
@@ -125,21 +144,38 @@ func (m Model) updateNormalMode(keyMsg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	switch key {
 	case "j", "down":
-		m.table.MoveDown(1)
+		if m.focus == focusPreview {
+			m.preview.LineDown(1)
+		} else {
+			m.table.MoveDown(1)
+			m.refreshPreview()
+		}
 	case "k", "up":
-		m.table.MoveUp(1)
+		if m.focus == focusPreview {
+			m.preview.LineUp(1)
+		} else {
+			m.table.MoveUp(1)
+			m.refreshPreview()
+		}
 	case "g":
 		if wasPendingG {
 			m.table.GotoTop()
+			m.refreshPreview()
 		} else {
 			m.pendingG = true
 		}
 	case "G":
 		m.table.GotoBottom()
+		m.refreshPreview()
+	case "h":
+		m.focus = focusList
+	case "l":
+		m.focus = focusPreview
 	case "s":
 		m.sortCol = m.sortCol.Next()
 		sortSessions(m.visible, m.sortCol)
 		m.table.SetRows(rowsFor(m.visible))
+		m.refreshPreview()
 	case "/", "f":
 		m.mode = modeFilter
 		m.filterInput.Focus()
@@ -147,8 +183,38 @@ func (m Model) updateNormalMode(keyMsg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.beginDelete()
 	case "u":
 		return m.undo()
+	case "enter":
+		return m.beginResume()
 	}
 	return m, nil
+}
+
+func (m Model) beginResume() (tea.Model, tea.Cmd) {
+	sel := m.selected()
+	if sel.ID == "" {
+		return m, nil
+	}
+	provider, ok := m.providers[sel.Provider]
+	if !ok {
+		m.err = fmt.Sprintf("no provider registered for %q", sel.Provider)
+		return m, nil
+	}
+	plan, err := resume.Prepare(sel, provider, m.findRunning)
+	if err != nil {
+		m.err = err.Error()
+		return m, nil
+	}
+	m.err = ""
+	if plan.ConflictPID != 0 {
+		m.confirm = &confirmState{kind: confirmResumeConflict, target: sel, pid: plan.ConflictPID, plan: plan}
+		return m, nil
+	}
+	m.pendingResume = plan
+	return m, tea.Quit
+}
+
+func (m Model) PendingResume() *resume.Plan {
+	return m.pendingResume
 }
 
 func (m Model) beginDelete() (tea.Model, tea.Cmd) {
@@ -184,8 +250,12 @@ func (m Model) updateConfirm(keyMsg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "y":
 		c := *m.confirm
 		m.confirm = nil
-		if c.kind == confirmDelete {
+		switch c.kind {
+		case confirmDelete:
 			return m.performDelete(c.target)
+		case confirmResumeConflict:
+			m.pendingResume = c.plan
+			return m, tea.Quit
 		}
 	case "n":
 		m.confirm = nil

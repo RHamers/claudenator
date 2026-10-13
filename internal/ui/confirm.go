@@ -1,6 +1,9 @@
 package ui
 
-import "github.com/RHamers/claudenator/internal/session"
+import (
+	"github.com/RHamers/claudenator/internal/resume"
+	"github.com/RHamers/claudenator/internal/session"
+)
 
 type confirmKind int
 
@@ -13,4 +16,5 @@ type confirmState struct {
 	kind   confirmKind
 	target session.Session
 	pid    int
+	plan   *resume.Plan
 }
