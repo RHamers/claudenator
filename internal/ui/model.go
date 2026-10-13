@@ -2,10 +2,18 @@ package ui
 
 import (
 	"github.com/charmbracelet/bubbles/table"
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 
 	"github.com/RHamers/claudenator/internal/session"
 	"github.com/RHamers/claudenator/internal/trash"
+)
+
+type mode int
+
+const (
+	modeNormal mode = iota
+	modeFilter
 )
 
 type Model struct {
@@ -17,6 +25,8 @@ type Model struct {
 	providers   map[string]session.Provider
 	trashStore  trash.Store
 	findRunning func(string) (int, bool)
+	mode        mode
+	filterInput textinput.Model
 }
 
 func columns() []table.Column {
@@ -50,6 +60,8 @@ func New(sessions []session.Session, providers map[string]session.Provider, tras
 		table.WithRows(rowsFor(m.visible)),
 		table.WithFocused(true),
 	)
+	m.filterInput = textinput.New()
+	m.filterInput.Prompt = "Filter: "
 	return m
 }
 
@@ -68,7 +80,33 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if !ok {
 		return m, nil
 	}
+	if m.mode == modeFilter {
+		return m.updateFilterMode(keyMsg)
+	}
 	return m.updateNormalMode(keyMsg)
+}
+
+func (m *Model) refreshVisible() {
+	m.visible = applyFilter(m.all, m.filterInput.Value())
+	sortSessions(m.visible, m.sortCol)
+	m.table.SetRows(rowsFor(m.visible))
+}
+
+func (m Model) updateFilterMode(keyMsg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch keyMsg.Type {
+	case tea.KeyEnter:
+		m.mode = modeNormal
+		return m, nil
+	case tea.KeyEsc:
+		m.filterInput.SetValue("")
+		m.mode = modeNormal
+		m.refreshVisible()
+		return m, nil
+	}
+	var cmd tea.Cmd
+	m.filterInput, cmd = m.filterInput.Update(keyMsg)
+	m.refreshVisible()
+	return m, cmd
 }
 
 func (m Model) updateNormalMode(keyMsg tea.KeyMsg) (tea.Model, tea.Cmd) {
@@ -93,6 +131,9 @@ func (m Model) updateNormalMode(keyMsg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.sortCol = m.sortCol.Next()
 		sortSessions(m.visible, m.sortCol)
 		m.table.SetRows(rowsFor(m.visible))
+	case "/", "f":
+		m.mode = modeFilter
+		m.filterInput.Focus()
 	}
 	return m, nil
 }
