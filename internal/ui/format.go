@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -20,4 +21,19 @@ func humanize(t time.Time) string {
 	default:
 		return fmt.Sprintf("%dd ago", int(d.Hours()/24))
 	}
+}
+
+// summarize collapses a multi-line prompt into a single line and truncates
+// it to maxLen runes (appending an ellipsis) so it fits a table column.
+func summarize(s string, maxLen int) string {
+	fields := strings.Fields(s)
+	collapsed := strings.Join(fields, " ")
+	runes := []rune(collapsed)
+	if len(runes) <= maxLen {
+		return collapsed
+	}
+	if maxLen <= 1 {
+		return string(runes[:maxLen])
+	}
+	return string(runes[:maxLen-1]) + "…"
 }

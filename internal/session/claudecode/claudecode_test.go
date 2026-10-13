@@ -30,6 +30,9 @@ func TestListParsesHappyPath(t *testing.T) {
 	if s.LastMessage != "now add tests for it" {
 		t.Errorf("LastMessage = %q", s.LastMessage)
 	}
+	if s.FirstMessage != "refactor the auth middleware" {
+		t.Errorf("FirstMessage = %q", s.FirstMessage)
+	}
 	if s.Provider != ProviderName {
 		t.Errorf("Provider = %q", s.Provider)
 	}

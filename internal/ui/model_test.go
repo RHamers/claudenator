@@ -117,6 +117,20 @@ func TestQKeyQuitsWithoutSettingPendingResume(t *testing.T) {
 	}
 }
 
+func TestRowsForShowsFirstMessageSummaryTruncated(t *testing.T) {
+	sessions := []session.Session{
+		{ID: "a", Dir: "/dir-a", FirstMessage: "please refactor this very long function so it reads cleanly end to end"},
+		{ID: "b", Dir: "/dir-b", FirstMessage: "short prompt"},
+	}
+	rows := rowsFor(sessions)
+	if got := rows[0][4]; len([]rune(got)) != 40 || got[len(got)-3:] != "…" {
+		t.Fatalf("expected long first message truncated to 40 runes with ellipsis, got %q (len %d)", got, len([]rune(got)))
+	}
+	if rows[1][4] != "short prompt" {
+		t.Fatalf("expected short first message unchanged, got %q", rows[1][4])
+	}
+}
+
 func TestNavigationOnEmptyListDoesNotPanic(t *testing.T) {
 	providers := map[string]session.Provider{}
 	findRunning := func(string) (int, bool) { return 0, false }

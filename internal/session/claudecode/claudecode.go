@@ -76,9 +76,9 @@ func parseFile(path string) (session.Session, error) {
 	}
 
 	var (
-		dir, branch, lastMsg, sessionID string
-		lastActive                      time.Time
-		sawCWD                          bool
+		dir, branch, lastMsg, firstMsg, sessionID string
+		lastActive                                time.Time
+		sawCWD                                    bool
 	)
 
 	for _, line := range strings.Split(trimmed, "\n") {
@@ -107,6 +107,9 @@ func parseFile(path string) (session.Session, error) {
 		if raw.Message != nil && raw.Message.Role == "user" && !raw.IsMeta {
 			if text := extractText(raw.Message.Content); text != "" && !strings.HasPrefix(text, "<") {
 				lastMsg = text
+				if firstMsg == "" {
+					firstMsg = text
+				}
 			}
 		}
 	}
@@ -119,13 +122,14 @@ func parseFile(path string) (session.Session, error) {
 	}
 
 	return session.Session{
-		ID:          sessionID,
-		Provider:    ProviderName,
-		Dir:         dir,
-		Branch:      branch,
-		LastActive:  lastActive,
-		LastMessage: lastMsg,
-		FilePath:    path,
+		ID:           sessionID,
+		Provider:     ProviderName,
+		Dir:          dir,
+		Branch:       branch,
+		LastActive:   lastActive,
+		LastMessage:  lastMsg,
+		FirstMessage: firstMsg,
+		FilePath:     path,
 	}, nil
 }
 

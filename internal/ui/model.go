@@ -52,6 +52,7 @@ func columns() []table.Column {
 		{Title: "Dir", Width: 40},
 		{Title: "Branch", Width: 16},
 		{Title: "Last edited", Width: 16},
+		{Title: "First prompt", Width: 40},
 	}
 }
 
@@ -62,7 +63,7 @@ func rowsFor(sessions []session.Session) []table.Row {
 		if s.Running {
 			running = "●"
 		}
-		rows[i] = table.Row{running, s.Dir, s.Branch, humanize(s.LastActive)}
+		rows[i] = table.Row{running, s.Dir, s.Branch, humanize(s.LastActive), summarize(s.FirstMessage, 40)}
 	}
 	return rows
 }
