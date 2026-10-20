@@ -21,3 +21,52 @@ jobs:
 
       - name: Test
         run: go test ./...
+
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      production: ${{ steps.filter.outputs.production }}
+    steps:
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            production:
+              - '**.go'
+              - '!**/*_test.go'
+              - 'go.mod'
+              - 'go.sum'
+
+  release-binaries:
+    needs: [test, changes]
+    if: |
+      needs.changes.outputs.production == 'true' &&
+      (github.event_name == 'push' || github.event.pull_request.base.ref == 'master')
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: darwin
+            goarch: arm64
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24.5"
+
+      - name: Build ${{ matrix.goos }}/${{ matrix.goarch }}
+        env:
+          CGO_ENABLED: 0
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: go build -trimpath -o "dist/claudenator-${{ matrix.goos }}-${{ matrix.goarch }}" .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: claudenator-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/claudenator-${{ matrix.goos }}-${{ matrix.goarch }}
+          # 31 (not 30) so the artifact always survives a full calendar month.
+          retention-days: 31
