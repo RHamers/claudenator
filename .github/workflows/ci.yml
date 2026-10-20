@@ -93,3 +93,27 @@ jobs:
           path: dist/claudenator-${{ matrix.goos }}-${{ matrix.goarch }}
           # 31 (not 30) so the artifact always survives a full calendar month.
           retention-days: 31
+
+  publish-release:
+    needs: release-binaries
+    # Only an actual push to master updates the public "latest" release —
+    # a PR's binaries stay as workflow artifacts for reviewers, not a
+    # published release, until the PR is merged.
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: claudenator-*
+          merge-multiple: true
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: Latest build
+          body: "Automated build from ${{ github.sha }}."
+          make_latest: true
+          files: dist/*
