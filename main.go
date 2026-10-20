@@ -18,6 +18,16 @@ import (
 	"github.com/RHamers/claudenator/internal/ui"
 )
 
+// version is stamped at build time via -ldflags "-X main.version=<sha>" for
+// release binaries; it stays "dev" for local go build/go install.
+var version = "dev"
+
+// versionRequested reports whether args asks to print the version instead
+// of launching the TUI.
+func versionRequested(args []string) bool {
+	return len(args) > 0 && (args[0] == "--version" || args[0] == "-v")
+}
+
 func buildProviders(home string) (map[string]session.Provider, trash.Store) {
 	trashStore := trash.Store{Dir: filepath.Join(home, ".claudenator", "trash")}
 	projectsRoot := filepath.Join(home, ".claude", "projects")
@@ -45,6 +55,11 @@ func aggregateSessions(providers map[string]session.Provider) ([]session.Session
 }
 
 func main() {
+	if versionRequested(os.Args[1:]) {
+		fmt.Println(version)
+		return
+	}
+
 	home, err := os.UserHomeDir()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

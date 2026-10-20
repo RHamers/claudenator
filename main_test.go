@@ -52,6 +52,24 @@ func TestBuildProvidersRegistersClaudeCode(t *testing.T) {
 	}
 }
 
+func TestVersionRequestedRecognizesFlag(t *testing.T) {
+	if !versionRequested([]string{"--version"}) {
+		t.Fatalf("expected --version to be recognized")
+	}
+	if !versionRequested([]string{"-v"}) {
+		t.Fatalf("expected -v to be recognized")
+	}
+}
+
+func TestVersionRequestedFalseForOtherArgs(t *testing.T) {
+	if versionRequested(nil) {
+		t.Fatalf("expected no args to not request the version")
+	}
+	if versionRequested([]string{"--help"}) {
+		t.Fatalf("expected an unrelated flag to not request the version")
+	}
+}
+
 var errTestProvider = fmtErrorf("boom")
 
 func fmtErrorf(msg string) error {

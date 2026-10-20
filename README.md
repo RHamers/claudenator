@@ -53,6 +53,10 @@ the machine, most recently active first.
 | `u` | Undo the last delete |
 | `q` / `ctrl+c` | Quit |
 
+Run `claudenator --version` (or `-v`) to print the build's commit SHA
+without launching the TUI — release binaries are stamped with the commit
+they were built from.
+
 Resuming (or starting a new session) replaces the claudenator process with
 `claude`, inheriting the current terminal — quitting Claude Code drops you
 back into your shell, not back into claudenator.

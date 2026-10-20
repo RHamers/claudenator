@@ -85,7 +85,9 @@ jobs:
           CGO_ENABLED: 0
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
-        run: go build -trimpath -o "dist/claudenator-${{ matrix.goos }}-${{ matrix.goarch }}" .
+        run: |
+          sha="$(git rev-parse --short HEAD)"
+          go build -trimpath -ldflags "-X main.version=$sha" -o "dist/claudenator-${{ matrix.goos }}-${{ matrix.goarch }}" .
 
       - uses: actions/upload-artifact@v4
         with:
