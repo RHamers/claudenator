@@ -20,7 +20,7 @@ func testSessions() []session.Session {
 func newTestModel() Model {
 	providers := map[string]session.Provider{}
 	findRunning := func(string) (int, bool) { return 0, false }
-	return New(testSessions(), providers, trash.Store{}, findRunning)
+	return New(testSessions(), providers, trash.Store{}, findRunning, "/tmp")
 }
 
 func pressRune(m Model, r rune) Model {
@@ -134,7 +134,7 @@ func TestRowsForShowsFirstMessageSummaryTruncated(t *testing.T) {
 func TestNavigationOnEmptyListDoesNotPanic(t *testing.T) {
 	providers := map[string]session.Provider{}
 	findRunning := func(string) (int, bool) { return 0, false }
-	m := New(nil, providers, trash.Store{}, findRunning)
+	m := New(nil, providers, trash.Store{}, findRunning, "/tmp")
 	m = pressRune(m, 'j')
 	m = pressRune(m, 'k')
 	_ = m.selected() // must not panic

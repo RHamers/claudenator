@@ -35,7 +35,7 @@ func newDeleteTestModel(t *testing.T) (Model, string, string) {
 
 	providers := map[string]session.Provider{claudecode.ProviderName: provider}
 	findRunning := func(string) (int, bool) { return 0, false }
-	m := New(sessions, providers, trashStore, findRunning)
+	m := New(sessions, providers, trashStore, findRunning, "/tmp")
 	return m, sessionPath, trashDir
 }
 

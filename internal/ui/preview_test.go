@@ -45,7 +45,7 @@ func TestPreviewContentMatchesSelectedSessionLastMessage(t *testing.T) {
 	sessions[0].LastMessage = "refactor the auth middleware"
 	providers := map[string]session.Provider{}
 	findRunning := func(string) (int, bool) { return 0, false }
-	m := New(sessions, providers, trash.Store{}, findRunning)
+	m := New(sessions, providers, trash.Store{}, findRunning, "/tmp")
 
 	if m.preview.View() == "" {
 		t.Fatalf("expected non-empty preview for selected session")

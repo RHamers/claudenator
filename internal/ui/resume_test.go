@@ -25,7 +25,7 @@ func newResumeTestModel(t *testing.T, findRunning func(string) (int, bool)) Mode
 		{ID: "abc", Provider: "stub", Dir: dir, Branch: "main"},
 	}
 	providers := map[string]session.Provider{"stub": stubProvider{}}
-	return New(sessions, providers, trash.Store{}, findRunning)
+	return New(sessions, providers, trash.Store{}, findRunning, dir)
 }
 
 func TestEnterNoConflictSetsPendingResumeAndQuits(t *testing.T) {
@@ -93,7 +93,7 @@ func TestEnterMissingDirShowsErrorNotQuit(t *testing.T) {
 	os.RemoveAll(missing) // ensure it really doesn't exist
 	sessions := []session.Session{{ID: "abc", Provider: "stub", Dir: missing}}
 	providers := map[string]session.Provider{"stub": stubProvider{}}
-	m := New(sessions, providers, trash.Store{}, func(string) (int, bool) { return 0, false })
+	m := New(sessions, providers, trash.Store{}, func(string) (int, bool) { return 0, false }, "/tmp")
 
 	m2, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m = m2.(Model)

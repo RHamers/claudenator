@@ -23,6 +23,18 @@ func humanize(t time.Time) string {
 	}
 }
 
+// footer returns the keybind hint line for the given mode, shown while no
+// confirm prompt is active (the confirm prompt already states its own y/n
+// keys).
+func footer(mode mode) string {
+	switch mode {
+	case modeFilter:
+		return "enter: confirm filter   esc: cancel"
+	default:
+		return "j/k: move   gg/G: top/bottom   h/l: focus list/preview   s: sort   /: filter   enter: resume   n: new session   d: delete   u: undo   q: quit"
+	}
+}
+
 // summarize collapses a multi-line prompt into a single line and truncates
 // it to maxLen runes (appending an ellipsis) so it fits a table column.
 func summarize(s string, maxLen int) string {

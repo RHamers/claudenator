@@ -15,7 +15,7 @@ func TestViewIncludesPreviewContentForSelectedSession(t *testing.T) {
 	sessions[0].LastMessage = "refactor the auth middleware"
 	providers := map[string]session.Provider{}
 	findRunning := func(string) (int, bool) { return 0, false }
-	m := New(sessions, providers, trash.Store{}, findRunning)
+	m := New(sessions, providers, trash.Store{}, findRunning, "/tmp")
 
 	if !strings.Contains(m.View(), "refactor the auth middleware") {
 		t.Fatalf("expected View() to contain preview content, got %q", m.View())
@@ -37,6 +37,28 @@ func TestViewShowsErrorLineWhenSet(t *testing.T) {
 
 	if !strings.Contains(m.View(), "something went wrong") {
 		t.Fatalf("expected View() to contain error line, got %q", m.View())
+	}
+}
+
+func TestViewShowsKeybindFooterInNormalMode(t *testing.T) {
+	m := newTestModel()
+
+	view := m.View()
+	if !strings.Contains(view, "n: new session") {
+		t.Fatalf("expected View() to contain new-session keybind hint, got %q", view)
+	}
+	if !strings.Contains(view, "q: quit") {
+		t.Fatalf("expected View() to contain quit keybind hint, got %q", view)
+	}
+}
+
+func TestViewShowsFilterFooterInFilterMode(t *testing.T) {
+	m := newTestModel()
+	m = pressRune(m, '/')
+
+	view := m.View()
+	if !strings.Contains(view, "esc: cancel") {
+		t.Fatalf("expected View() to contain filter-mode footer, got %q", view)
 	}
 }
 

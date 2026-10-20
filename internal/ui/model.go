@@ -18,6 +18,7 @@ type mode int
 const (
 	modeNormal mode = iota
 	modeFilter
+	modeBrowse
 )
 
 type focusPane int
@@ -44,6 +45,11 @@ type Model struct {
 	preview       viewport.Model
 	focus         focusPane
 	pendingResume *resume.Plan
+	launchDir     string
+	browseRoot    string
+	browseCurrent string
+	browseEntries []string
+	browseCursor  int
 }
 
 func columns() []table.Column {
@@ -68,13 +74,14 @@ func rowsFor(sessions []session.Session) []table.Row {
 	return rows
 }
 
-func New(sessions []session.Session, providers map[string]session.Provider, trashStore trash.Store, findRunning func(string) (int, bool)) Model {
+func New(sessions []session.Session, providers map[string]session.Provider, trashStore trash.Store, findRunning func(string) (int, bool), launchDir string) Model {
 	m := Model{
 		all:         append([]session.Session(nil), sessions...),
 		sortCol:     SortByLastActive,
 		providers:   providers,
 		trashStore:  trashStore,
 		findRunning: findRunning,
+		launchDir:   launchDir,
 	}
 	m.visible = append([]session.Session(nil), m.all...)
 	sortSessions(m.visible, m.sortCol)
@@ -105,10 +112,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if !ok {
 		return m, nil
 	}
-	if m.mode == modeFilter {
+	switch m.mode {
+	case modeFilter:
 		return m.updateFilterMode(keyMsg)
+	case modeBrowse:
+		return m.updateBrowseMode(keyMsg)
+	default:
+		return m.updateNormalMode(keyMsg)
 	}
-	return m.updateNormalMode(keyMsg)
 }
 
 func (m *Model) refreshVisible() {
@@ -202,6 +213,8 @@ func (m Model) updateNormalMode(keyMsg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.undo()
 	case "enter":
 		return m.beginResume()
+	case "n":
+		return m.beginBrowse()
 	}
 	return m, nil
 }
@@ -314,6 +327,10 @@ func removeByID(sessions []session.Session, id string) []session.Session {
 }
 
 func (m Model) View() string {
+	if m.mode == modeBrowse {
+		return m.browseView()
+	}
+
 	view := m.table.View() + "\n" + m.preview.View()
 
 	if m.mode == modeFilter {
@@ -331,6 +348,8 @@ func (m Model) View() string {
 		case confirmResumeConflict:
 			view += "\n" + fmt.Sprintf("Session already running in %s (pid %d) — attach anyway? (y/n)", m.confirm.target.Dir, m.confirm.pid)
 		}
+	} else {
+		view += "\n" + footer(m.mode)
 	}
 
 	return view

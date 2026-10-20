@@ -51,6 +51,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	launchDir, err := os.Getwd()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
 	providers, trashStore := buildProviders(home)
 
 	if err := trashStore.Prune(30*24*time.Hour, time.Now()); err != nil {
@@ -71,7 +77,7 @@ func main() {
 		sessions[i].Running = running
 	}
 
-	m := ui.New(sessions, providers, trashStore, findRunning)
+	m := ui.New(sessions, providers, trashStore, findRunning, launchDir)
 	p := tea.NewProgram(m, tea.WithAltScreen())
 	finalModel, err := p.Run()
 	if err != nil {
