@@ -28,16 +28,37 @@ jobs:
       production: ${{ steps.filter.outputs.production }}
     steps:
       - uses: actions/checkout@v4
-
-      - uses: dorny/paths-filter@v3
-        id: filter
         with:
-          filters: |
-            production:
-              - '**.go'
-              - '!**/*_test.go'
-              - 'go.mod'
-              - 'go.sum'
+          fetch-depth: 0
+
+      - name: Detect changed production files
+        id: filter
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base="${{ github.event.pull_request.base.sha }}"
+          else
+            base="${{ github.event.before }}"
+          fi
+
+          # No usable base to diff against (e.g. a force-push or the first
+          # push of a branch leaves 'before' as all zeros) — build rather
+          # than silently skip a release.
+          if [ -z "$base" ] || ! git cat-file -e "$base^{commit}" 2>/dev/null; then
+            echo "no usable base commit; assuming production code changed"
+            echo "production=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          changed="$(git diff --name-only "$base" "${{ github.sha }}" -- '*.go' 'go.mod' 'go.sum' | grep -v '_test\.go$' || true)"
+          echo "Changed production files:"
+          echo "${changed:-<none>}"
+
+          if [ -n "$changed" ]; then
+            echo "production=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "production=false" >> "$GITHUB_OUTPUT"
+          fi
 
   release-binaries:
     needs: [test, changes]
