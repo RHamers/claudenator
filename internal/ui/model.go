@@ -69,7 +69,11 @@ func rowsFor(sessions []session.Session) []table.Row {
 		if s.Running {
 			running = "●"
 		}
-		rows[i] = table.Row{running, s.Dir, s.Branch, humanize(s.LastActive), summarize(s.FirstMessage, 40)}
+		label := s.FirstMessage
+		if s.Name != "" {
+			label = s.Name
+		}
+		rows[i] = table.Row{running, s.Dir, s.Branch, humanize(s.LastActive), summarize(label, 40)}
 	}
 	return rows
 }

@@ -1,0 +1,4 @@
+{"type":"system","cwd":"/home/user/proj","gitBranch":"main","sessionId":"22222222-2222-2222-2222-222222222222","timestamp":"2026-10-01T10:00:00Z"}
+{"type":"user","message":{"role":"user","content":"refactor the auth middleware"},"cwd":"/home/user/proj","gitBranch":"main","sessionId":"22222222-2222-2222-2222-222222222222","timestamp":"2026-10-01T10:05:00Z"}
+{"type":"ai-title","aiTitle":"Auth middleware refactor","sessionId":"22222222-2222-2222-2222-222222222222"}
+{"type":"custom-title","customTitle":"auth-refactor","sessionId":"22222222-2222-2222-2222-222222222222"}

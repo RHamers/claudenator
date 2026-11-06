@@ -11,6 +11,7 @@ type Session struct {
 	LastActive   time.Time // timestamp of the most recent event in the session
 	LastMessage  string    // preview text of the last user message
 	FirstMessage string    // preview text of the first user message (the session's opening prompt)
+	Name         string    // user-assigned session name (e.g. set via Claude Code's /rename), empty if unnamed
 	Running      bool      // true if a resume process for this session is currently active
 	FilePath     string    // absolute path to the session's on-disk file
 }

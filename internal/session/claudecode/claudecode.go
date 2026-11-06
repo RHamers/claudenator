@@ -26,12 +26,14 @@ func New(projectsRoot string, t trash.Store) *Provider {
 }
 
 type rawLine struct {
-	CWD       string      `json:"cwd"`
-	Timestamp string      `json:"timestamp"`
-	GitBranch string      `json:"gitBranch"`
-	SessionID string      `json:"sessionId"`
-	Message   *rawMessage `json:"message"`
-	IsMeta    bool        `json:"isMeta"`
+	Type        string      `json:"type"`
+	CWD         string      `json:"cwd"`
+	Timestamp   string      `json:"timestamp"`
+	GitBranch   string      `json:"gitBranch"`
+	SessionID   string      `json:"sessionId"`
+	Message     *rawMessage `json:"message"`
+	IsMeta      bool        `json:"isMeta"`
+	CustomTitle string      `json:"customTitle"`
 }
 
 type rawMessage struct {
@@ -76,9 +78,9 @@ func parseFile(path string) (session.Session, error) {
 	}
 
 	var (
-		dir, branch, lastMsg, firstMsg, sessionID string
-		lastActive                                time.Time
-		sawCWD                                    bool
+		dir, branch, lastMsg, firstMsg, sessionID, name string
+		lastActive                                      time.Time
+		sawCWD                                          bool
 	)
 
 	for _, line := range strings.Split(trimmed, "\n") {
@@ -98,6 +100,9 @@ func parseFile(path string) (session.Session, error) {
 		}
 		if raw.GitBranch != "" {
 			branch = raw.GitBranch
+		}
+		if raw.Type == "custom-title" && raw.CustomTitle != "" {
+			name = raw.CustomTitle
 		}
 		if raw.Timestamp != "" {
 			if t, err := time.Parse(time.RFC3339, raw.Timestamp); err == nil {
@@ -129,6 +134,7 @@ func parseFile(path string) (session.Session, error) {
 		LastActive:   lastActive,
 		LastMessage:  lastMsg,
 		FirstMessage: firstMsg,
+		Name:         name,
 		FilePath:     path,
 	}, nil
 }
