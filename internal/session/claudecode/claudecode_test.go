@@ -38,6 +38,20 @@ func TestListParsesHappyPath(t *testing.T) {
 	}
 }
 
+func TestListParsesCustomTitleAsNameIgnoringAITitle(t *testing.T) {
+	p := New("testdata/custom-title", trash.Store{Dir: t.TempDir()})
+	sessions, err := p.List()
+	if err != nil {
+		t.Fatalf("List: %v", err)
+	}
+	if len(sessions) != 1 {
+		t.Fatalf("expected 1 session, got %d", len(sessions))
+	}
+	if sessions[0].Name != "auth-refactor" {
+		t.Errorf("Name = %q, want the custom-title value, not the ai-title", sessions[0].Name)
+	}
+}
+
 func TestListSkipsSessionWithNoCWD(t *testing.T) {
 	p := New("testdata/missing-cwd", trash.Store{Dir: t.TempDir()})
 	sessions, err := p.List()

@@ -104,6 +104,20 @@ func TestRowsForShowsRunningIndicatorOnlyForRunningSessions(t *testing.T) {
 	}
 }
 
+func TestRowsForPrefersNameOverFirstMessageWhenSet(t *testing.T) {
+	sessions := []session.Session{
+		{ID: "a", Dir: "/dir-a", FirstMessage: "please refactor this function", Name: "auth-refactor"},
+		{ID: "b", Dir: "/dir-b", FirstMessage: "short prompt"},
+	}
+	rows := rowsFor(sessions)
+	if rows[0][4] != "auth-refactor" {
+		t.Fatalf("expected named session to show its name, got %q", rows[0][4])
+	}
+	if rows[1][4] != "short prompt" {
+		t.Fatalf("expected unnamed session to fall back to first message, got %q", rows[1][4])
+	}
+}
+
 func TestQKeyQuitsWithoutSettingPendingResume(t *testing.T) {
 	m := newTestModel()
 	updated, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}})
