@@ -13,8 +13,15 @@ import (
 type stubProvider struct{}
 
 func (stubProvider) List() ([]session.Session, error) { return nil, nil }
-func (stubProvider) ResumeArgv(s session.Session, fork bool) []string {
-	return []string{"claude", "--resume", s.ID}
+func (stubProvider) ResumeArgv(s session.Session, fork bool, name string) []string {
+	argv := []string{"claude", "--resume", s.ID}
+	if fork {
+		argv = append(argv, "--fork-session")
+		if name != "" {
+			argv = append(argv, "--name", name)
+		}
+	}
+	return argv
 }
 func (stubProvider) Delete(s session.Session) error { return nil }
 

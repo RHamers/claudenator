@@ -10,10 +10,13 @@ import (
 type fakeProvider struct{}
 
 func (fakeProvider) List() ([]session.Session, error) { return nil, nil }
-func (fakeProvider) ResumeArgv(s session.Session, fork bool) []string {
+func (fakeProvider) ResumeArgv(s session.Session, fork bool, name string) []string {
 	argv := []string{"claude", "--resume", s.ID}
 	if fork {
 		argv = append(argv, "--fork-session")
+		if name != "" {
+			argv = append(argv, "--name", name)
+		}
 	}
 	return argv
 }
@@ -23,7 +26,7 @@ func TestPrepareNoConflict(t *testing.T) {
 	s := session.Session{ID: "abc", Dir: t.TempDir()}
 	findRunning := func(string) (int, bool) { return 0, false }
 
-	plan, err := Prepare(s, fakeProvider{}, findRunning, false)
+	plan, err := Prepare(s, fakeProvider{}, findRunning, false, "")
 	if err != nil {
 		t.Fatalf("Prepare: %v", err)
 	}
@@ -50,7 +53,7 @@ func TestPrepareConflict(t *testing.T) {
 		return 0, false
 	}
 
-	plan, err := Prepare(s, fakeProvider{}, findRunning, false)
+	plan, err := Prepare(s, fakeProvider{}, findRunning, false, "")
 	if err != nil {
 		t.Fatalf("Prepare: %v", err)
 	}
@@ -63,7 +66,7 @@ func TestPrepareMissingDirReturnsError(t *testing.T) {
 	s := session.Session{ID: "abc", Dir: "/this/path/does/not/exist/claudenator-test"}
 	findRunning := func(string) (int, bool) { return 0, false }
 
-	_, err := Prepare(s, fakeProvider{}, findRunning, false)
+	_, err := Prepare(s, fakeProvider{}, findRunning, false, "")
 	if err == nil {
 		t.Fatalf("expected error for missing directory")
 	}
@@ -78,7 +81,7 @@ func TestPrepareForkSkipsConflictCheck(t *testing.T) {
 		return 0, false
 	}
 
-	plan, err := Prepare(s, fakeProvider{}, findRunning, true)
+	plan, err := Prepare(s, fakeProvider{}, findRunning, true, "")
 	if err != nil {
 		t.Fatalf("Prepare: %v", err)
 	}
@@ -91,11 +94,25 @@ func TestPrepareForkBuildsForkArgv(t *testing.T) {
 	s := session.Session{ID: "abc", Dir: t.TempDir()}
 	findRunning := func(string) (int, bool) { return 0, false }
 
-	plan, err := Prepare(s, fakeProvider{}, findRunning, true)
+	plan, err := Prepare(s, fakeProvider{}, findRunning, true, "")
 	if err != nil {
 		t.Fatalf("Prepare: %v", err)
 	}
 	want := []string{"claude", "--resume", "abc", "--fork-session"}
+	if !reflect.DeepEqual(plan.Argv, want) {
+		t.Fatalf("Argv = %v, want %v", plan.Argv, want)
+	}
+}
+
+func TestPrepareForkPassesNameToProvider(t *testing.T) {
+	s := session.Session{ID: "abc", Dir: t.TempDir()}
+	findRunning := func(string) (int, bool) { return 0, false }
+
+	plan, err := Prepare(s, fakeProvider{}, findRunning, true, "my-fork")
+	if err != nil {
+		t.Fatalf("Prepare: %v", err)
+	}
+	want := []string{"claude", "--resume", "abc", "--fork-session", "--name", "my-fork"}
 	if !reflect.DeepEqual(plan.Argv, want) {
 		t.Fatalf("Argv = %v, want %v", plan.Argv, want)
 	}

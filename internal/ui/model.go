@@ -235,7 +235,7 @@ func (m Model) beginResume() (tea.Model, tea.Cmd) {
 		m.err = fmt.Sprintf("no provider registered for %q", sel.Provider)
 		return m, nil
 	}
-	plan, err := resume.Prepare(sel, provider, m.findRunning, false)
+	plan, err := resume.Prepare(sel, provider, m.findRunning, false, "")
 	if err != nil {
 		m.err = err.Error()
 		return m, nil
@@ -259,7 +259,7 @@ func (m Model) beginFork() (tea.Model, tea.Cmd) {
 		m.err = fmt.Sprintf("no provider registered for %q", sel.Provider)
 		return m, nil
 	}
-	plan, err := resume.Prepare(sel, provider, m.findRunning, true)
+	plan, err := resume.Prepare(sel, provider, m.findRunning, true, "")
 	if err != nil {
 		m.err = err.Error()
 		return m, nil
