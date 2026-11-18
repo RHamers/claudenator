@@ -217,6 +217,8 @@ func (m Model) updateNormalMode(keyMsg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.undo()
 	case "enter":
 		return m.beginResume()
+	case "F":
+		return m.beginFork()
 	case "n":
 		return m.beginBrowse()
 	}
@@ -243,6 +245,26 @@ func (m Model) beginResume() (tea.Model, tea.Cmd) {
 		m.confirm = &confirmState{kind: confirmResumeConflict, target: sel, pid: plan.ConflictPID, plan: plan}
 		return m, nil
 	}
+	m.pendingResume = plan
+	return m, tea.Quit
+}
+
+func (m Model) beginFork() (tea.Model, tea.Cmd) {
+	sel := m.selected()
+	if sel.ID == "" {
+		return m, nil
+	}
+	provider, ok := m.providers[sel.Provider]
+	if !ok {
+		m.err = fmt.Sprintf("no provider registered for %q", sel.Provider)
+		return m, nil
+	}
+	plan, err := resume.Prepare(sel, provider, m.findRunning, true)
+	if err != nil {
+		m.err = err.Error()
+		return m, nil
+	}
+	m.err = ""
 	m.pendingResume = plan
 	return m, tea.Quit
 }
