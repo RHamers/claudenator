@@ -50,6 +50,9 @@ func TestViewShowsKeybindFooterInNormalMode(t *testing.T) {
 	if !strings.Contains(view, "q: quit") {
 		t.Fatalf("expected View() to contain quit keybind hint, got %q", view)
 	}
+	if !strings.Contains(view, "F: fork") {
+		t.Fatalf("expected View() to contain fork keybind hint, got %q", view)
+	}
 }
 
 func TestViewShowsFilterFooterInFilterMode(t *testing.T) {

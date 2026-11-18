@@ -13,7 +13,7 @@ import (
 type stubProvider struct{}
 
 func (stubProvider) List() ([]session.Session, error) { return nil, nil }
-func (stubProvider) ResumeArgv(s session.Session) []string {
+func (stubProvider) ResumeArgv(s session.Session, fork bool) []string {
 	return []string{"claude", "--resume", s.ID}
 }
 func (stubProvider) Delete(s session.Session) error { return nil }
@@ -97,6 +97,55 @@ func TestEnterMissingDirShowsErrorNotQuit(t *testing.T) {
 
 	m2, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m = m2.(Model)
+
+	if m.err == "" {
+		t.Fatalf("expected inline error for missing directory")
+	}
+	if cmd != nil {
+		t.Fatalf("expected no quit command when directory is missing")
+	}
+}
+
+func TestShiftFNoConflictSetsPendingResumeAndQuits(t *testing.T) {
+	m := newResumeTestModel(t, func(string) (int, bool) { return 0, false })
+
+	updated, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'F'}})
+	m = updated.(Model)
+
+	if m.PendingResume() == nil {
+		t.Fatalf("expected pending resume plan")
+	}
+	if cmd == nil {
+		t.Fatalf("expected tea.Quit command")
+	}
+}
+
+func TestShiftFSkipsConflictDialogEvenWhenSessionRunning(t *testing.T) {
+	m := newResumeTestModel(t, func(string) (int, bool) { return 555, true })
+
+	updated, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'F'}})
+	m = updated.(Model)
+
+	if m.confirm != nil {
+		t.Fatalf("expected no confirm dialog when forking, got %v", m.confirm)
+	}
+	if m.PendingResume() == nil {
+		t.Fatalf("expected pending resume plan")
+	}
+	if cmd == nil {
+		t.Fatalf("expected tea.Quit command")
+	}
+}
+
+func TestShiftFMissingDirShowsErrorNotQuit(t *testing.T) {
+	missing := "/this/path/does/not/exist/claudenator-test"
+	os.RemoveAll(missing)
+	sessions := []session.Session{{ID: "abc", Provider: "stub", Dir: missing}}
+	providers := map[string]session.Provider{"stub": stubProvider{}}
+	m := New(sessions, providers, trash.Store{}, func(string) (int, bool) { return 0, false }, "/tmp")
+
+	updated, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'F'}})
+	m = updated.(Model)
 
 	if m.err == "" {
 		t.Fatalf("expected inline error for missing directory")

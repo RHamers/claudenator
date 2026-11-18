@@ -3,10 +3,30 @@ package claudecode
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 
+	"github.com/RHamers/claudenator/internal/session"
 	"github.com/RHamers/claudenator/internal/trash"
 )
+
+func TestResumeArgvPlainResume(t *testing.T) {
+	p := New("", trash.Store{})
+	got := p.ResumeArgv(session.Session{ID: "abc"}, false)
+	want := []string{"claude", "--resume", "abc"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("ResumeArgv(fork=false) = %v, want %v", got, want)
+	}
+}
+
+func TestResumeArgvForkAppendsForkSessionFlag(t *testing.T) {
+	p := New("", trash.Store{})
+	got := p.ResumeArgv(session.Session{ID: "abc"}, true)
+	want := []string{"claude", "--resume", "abc", "--fork-session"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("ResumeArgv(fork=true) = %v, want %v", got, want)
+	}
+}
 
 func TestListParsesHappyPath(t *testing.T) {
 	p := New("testdata/happy", trash.Store{Dir: t.TempDir()})

@@ -31,7 +31,7 @@ func footer(mode mode) string {
 	case modeFilter:
 		return "enter: confirm filter   esc: cancel"
 	default:
-		return "j/k: move   gg/G: top/bottom   h/l: focus list/preview   s: sort   /: filter   enter: resume   n: new session   d: delete   u: undo   q: quit"
+		return "j/k: move   gg/G: top/bottom   h/l: focus list/preview   s: sort   /: filter   enter: resume   F: fork   n: new session   d: delete   u: undo   q: quit"
 	}
 }
 

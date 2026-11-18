@@ -12,7 +12,7 @@ type fakeAggregateProvider struct {
 }
 
 func (p fakeAggregateProvider) List() ([]session.Session, error) { return p.sessions, p.err }
-func (p fakeAggregateProvider) ResumeArgv(s session.Session) []string {
+func (p fakeAggregateProvider) ResumeArgv(s session.Session, fork bool) []string {
 	return []string{"claude", "--resume", s.ID}
 }
 func (p fakeAggregateProvider) Delete(s session.Session) error { return nil }
