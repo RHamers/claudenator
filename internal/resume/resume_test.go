@@ -9,7 +9,7 @@ import (
 type fakeProvider struct{}
 
 func (fakeProvider) List() ([]session.Session, error) { return nil, nil }
-func (fakeProvider) ResumeArgv(s session.Session) []string {
+func (fakeProvider) ResumeArgv(s session.Session, fork bool) []string {
 	return []string{"claude", "--resume", s.ID}
 }
 func (fakeProvider) Delete(s session.Session) error { return nil }

@@ -13,7 +13,7 @@ import (
 type stubProvider struct{}
 
 func (stubProvider) List() ([]session.Session, error) { return nil, nil }
-func (stubProvider) ResumeArgv(s session.Session) []string {
+func (stubProvider) ResumeArgv(s session.Session, fork bool) []string {
 	return []string{"claude", "--resume", s.ID}
 }
 func (stubProvider) Delete(s session.Session) error { return nil }

@@ -25,7 +25,7 @@ func Prepare(s session.Session, provider session.Provider, findRunning func(sess
 		return nil, fmt.Errorf("claudenator: directory no longer exists: %s", s.Dir)
 	}
 	plan := &Plan{
-		Argv: provider.ResumeArgv(s),
+		Argv: provider.ResumeArgv(s, false),
 		Dir:  s.Dir,
 	}
 	if pid, found := findRunning(s.ID); found {

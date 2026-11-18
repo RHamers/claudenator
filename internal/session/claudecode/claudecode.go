@@ -155,8 +155,12 @@ func (p *Provider) List() ([]session.Session, error) {
 	return sessions, nil
 }
 
-func (p *Provider) ResumeArgv(s session.Session) []string {
-	return []string{"claude", "--resume", s.ID}
+func (p *Provider) ResumeArgv(s session.Session, fork bool) []string {
+	argv := []string{"claude", "--resume", s.ID}
+	if fork {
+		argv = append(argv, "--fork-session")
+	}
+	return argv
 }
 
 func (p *Provider) Delete(s session.Session) error {
