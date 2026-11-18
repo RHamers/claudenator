@@ -12,7 +12,7 @@ import (
 
 func TestResumeArgvPlainResume(t *testing.T) {
 	p := New("", trash.Store{})
-	got := p.ResumeArgv(session.Session{ID: "abc"}, false)
+	got := p.ResumeArgv(session.Session{ID: "abc"}, false, "")
 	want := []string{"claude", "--resume", "abc"}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("ResumeArgv(fork=false) = %v, want %v", got, want)
@@ -21,10 +21,37 @@ func TestResumeArgvPlainResume(t *testing.T) {
 
 func TestResumeArgvForkAppendsForkSessionFlag(t *testing.T) {
 	p := New("", trash.Store{})
-	got := p.ResumeArgv(session.Session{ID: "abc"}, true)
+	got := p.ResumeArgv(session.Session{ID: "abc"}, true, "")
 	want := []string{"claude", "--resume", "abc", "--fork-session"}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("ResumeArgv(fork=true) = %v, want %v", got, want)
+	}
+}
+
+func TestResumeArgvForkWithNameAppendsNameFlag(t *testing.T) {
+	p := New("", trash.Store{})
+	got := p.ResumeArgv(session.Session{ID: "abc"}, true, "my-fork")
+	want := []string{"claude", "--resume", "abc", "--fork-session", "--name", "my-fork"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("ResumeArgv(fork=true, name set) = %v, want %v", got, want)
+	}
+}
+
+func TestResumeArgvForkWithEmptyNameOmitsNameFlag(t *testing.T) {
+	p := New("", trash.Store{})
+	got := p.ResumeArgv(session.Session{ID: "abc"}, true, "")
+	want := []string{"claude", "--resume", "abc", "--fork-session"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("ResumeArgv(fork=true, name empty) = %v, want %v", got, want)
+	}
+}
+
+func TestResumeArgvPlainResumeIgnoresName(t *testing.T) {
+	p := New("", trash.Store{})
+	got := p.ResumeArgv(session.Session{ID: "abc"}, false, "should-be-ignored")
+	want := []string{"claude", "--resume", "abc"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("ResumeArgv(fork=false, name set) = %v, want %v", got, want)
 	}
 }
 

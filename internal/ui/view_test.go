@@ -79,3 +79,19 @@ func TestViewShowsConfirmPromptForResumeConflict(t *testing.T) {
 		t.Fatalf("expected View() to contain the session directory, got %q", view)
 	}
 }
+
+func TestViewShowsForkNamePopupTitleAndEmptyNameError(t *testing.T) {
+	m := newResumeTestModel(t, func(string) (int, bool) { return 0, false })
+	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'F'}})
+	m = updated.(Model)
+	updated, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = updated.(Model)
+
+	view := m.View()
+	if !strings.Contains(view, "Fork session") {
+		t.Fatalf("expected View() to contain the popup title, got %q", view)
+	}
+	if !strings.Contains(view, "name is required") {
+		t.Fatalf("expected View() to contain the empty-name error, got %q", view)
+	}
+}

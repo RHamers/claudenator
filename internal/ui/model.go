@@ -19,6 +19,7 @@ const (
 	modeNormal mode = iota
 	modeFilter
 	modeBrowse
+	modeForkName
 )
 
 type focusPane int
@@ -39,6 +40,9 @@ type Model struct {
 	findRunning   func(string) (int, bool)
 	mode          mode
 	filterInput   textinput.Model
+	forkNameInput textinput.Model
+	forkTarget    session.Session
+	forkNameErr   string
 	confirm       *confirmState
 	err           string
 	undoStack     trash.UndoStack
@@ -96,6 +100,8 @@ func New(sessions []session.Session, providers map[string]session.Provider, tras
 	)
 	m.filterInput = textinput.New()
 	m.filterInput.Prompt = "Filter: "
+	m.forkNameInput = textinput.New()
+	m.forkNameInput.Prompt = "Name: "
 	m.preview = viewport.New(80, 6)
 	m.refreshPreview()
 	return m
@@ -121,6 +127,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.updateFilterMode(keyMsg)
 	case modeBrowse:
 		return m.updateBrowseMode(keyMsg)
+	case modeForkName:
+		return m.updateForkNameMode(keyMsg)
 	default:
 		return m.updateNormalMode(keyMsg)
 	}
@@ -235,7 +243,7 @@ func (m Model) beginResume() (tea.Model, tea.Cmd) {
 		m.err = fmt.Sprintf("no provider registered for %q", sel.Provider)
 		return m, nil
 	}
-	plan, err := resume.Prepare(sel, provider, m.findRunning, false)
+	plan, err := resume.Prepare(sel, provider, m.findRunning, false, "")
 	if err != nil {
 		m.err = err.Error()
 		return m, nil
@@ -245,26 +253,6 @@ func (m Model) beginResume() (tea.Model, tea.Cmd) {
 		m.confirm = &confirmState{kind: confirmResumeConflict, target: sel, pid: plan.ConflictPID, plan: plan}
 		return m, nil
 	}
-	m.pendingResume = plan
-	return m, tea.Quit
-}
-
-func (m Model) beginFork() (tea.Model, tea.Cmd) {
-	sel := m.selected()
-	if sel.ID == "" {
-		return m, nil
-	}
-	provider, ok := m.providers[sel.Provider]
-	if !ok {
-		m.err = fmt.Sprintf("no provider registered for %q", sel.Provider)
-		return m, nil
-	}
-	plan, err := resume.Prepare(sel, provider, m.findRunning, true)
-	if err != nil {
-		m.err = err.Error()
-		return m, nil
-	}
-	m.err = ""
 	m.pendingResume = plan
 	return m, tea.Quit
 }
@@ -355,6 +343,9 @@ func removeByID(sessions []session.Session, id string) []session.Session {
 func (m Model) View() string {
 	if m.mode == modeBrowse {
 		return m.browseView()
+	}
+	if m.mode == modeForkName {
+		return m.forkNameView()
 	}
 
 	view := m.table.View() + "\n" + m.preview.View()

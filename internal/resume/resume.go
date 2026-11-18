@@ -20,12 +20,12 @@ type Plan struct {
 
 // Prepare validates that s.Dir still exists and checks findRunning for a
 // process already attached to this session. It performs no side effects.
-func Prepare(s session.Session, provider session.Provider, findRunning func(sessionID string) (pid int, found bool), fork bool) (*Plan, error) {
+func Prepare(s session.Session, provider session.Provider, findRunning func(sessionID string) (pid int, found bool), fork bool, name string) (*Plan, error) {
 	if _, err := os.Stat(s.Dir); err != nil {
 		return nil, fmt.Errorf("claudenator: directory no longer exists: %s", s.Dir)
 	}
 	plan := &Plan{
-		Argv: provider.ResumeArgv(s, fork),
+		Argv: provider.ResumeArgv(s, fork, name),
 		Dir:  s.Dir,
 	}
 	if fork {
