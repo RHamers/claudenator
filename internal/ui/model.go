@@ -233,7 +233,7 @@ func (m Model) beginResume() (tea.Model, tea.Cmd) {
 		m.err = fmt.Sprintf("no provider registered for %q", sel.Provider)
 		return m, nil
 	}
-	plan, err := resume.Prepare(sel, provider, m.findRunning)
+	plan, err := resume.Prepare(sel, provider, m.findRunning, false)
 	if err != nil {
 		m.err = err.Error()
 		return m, nil
